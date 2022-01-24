@@ -1643,6 +1643,49 @@ describe('Auto Completion Tests', () => {
         })
         .then(done, done);
     });
+    it('Autocomplete should suggest prop with const value', (done) => {
+      languageService.addSchema(SCHEMA_ID, {
+        type: 'object',
+        properties: {
+          fruit: {
+            const: 'Apple',
+          },
+        },
+      });
+      const content = '';
+      const completion = parseSetup(content, 0);
+      completion
+        .then(function (result) {
+          assert.equal(result.items.length, 1);
+          assert.deepEqual(
+            result.items[0],
+            createExpectedCompletion('fruit', 'fruit: Apple', 0, 0, 0, 0, 10, 2, {
+              documentation: '',
+            })
+          );
+        })
+        .then(done, done);
+    });
+    it('Should insert quotation value if there is special char', async () => {
+      languageService.addSchema(SCHEMA_ID, {
+        type: 'object',
+        properties: {
+          from: {
+            type: 'string',
+            const: '@test',
+          },
+        },
+      });
+      const content = 'from: ';
+      const completion = await parseSetup(content, content.length);
+
+      expect(completion.items.length).equal(1);
+      expect(completion.items[0]).to.deep.equal(
+        createExpectedCompletion('@test', '"@test"', 0, 6, 0, 6, 12, 2, {
+          documentation: undefined,
+        })
+      );
+    });
   });
 
   describe('Indentation Specific Tests', function () {
@@ -1653,7 +1696,7 @@ describe('Auto Completion Tests', () => {
       const completion = parseSetup(content, content.lastIndexOf('he') + 2);
       completion
         .then(function (result) {
-          assert.equal(result.items.length, 1);
+          assert.equal(result.items.length, 2);
           assert.deepEqual(
             result.items[0],
             createExpectedCompletion('helm', 'helm:\n    name: ', 1, 4, 1, 6, 10, 2, {
@@ -1671,7 +1714,7 @@ describe('Auto Completion Tests', () => {
       const completion = parseSetup(content, content.lastIndexOf('he') + 2);
       completion
         .then(function (result) {
-          assert.equal(result.items.length, 1);
+          assert.equal(result.items.length, 2);
           assert.deepEqual(
             result.items[0],
             createExpectedCompletion('helm', 'helm:\n               name: ', 1, 14, 1, 16, 10, 2, {
@@ -1689,7 +1732,7 @@ describe('Auto Completion Tests', () => {
       const completion = parseSetup(content, content.lastIndexOf('he') + 2);
       completion
         .then(function (result) {
-          assert.equal(result.items.length, 1);
+          assert.equal(result.items.length, 2);
           assert.deepEqual(
             result.items[0],
             createExpectedCompletion('helm', 'helm:\n \t               name: ', 1, 16, 1, 18, 10, 2, {
@@ -2187,7 +2230,7 @@ describe('Auto Completion Tests', () => {
 
       const content = 'kind: 111\n';
       const completion = await parseSetup(content, 3);
-      expect(completion.items).lengthOf(1);
+      expect(completion.items).lengthOf(2);
       expect(completion.items[0]).eql(
         createExpectedCompletion('kind', 'kind', 0, 0, 0, 4, 10, InsertTextFormat.Snippet, { documentation: '' })
       );
@@ -2206,7 +2249,7 @@ describe('Auto Completion Tests', () => {
 
       const content = 'ki: 111\n';
       const completion = await parseSetup(content, 1);
-      expect(completion.items).lengthOf(1);
+      expect(completion.items).lengthOf(2);
       expect(completion.items[0]).eql(
         createExpectedCompletion('kind', 'kind', 0, 0, 0, 2, 10, InsertTextFormat.Snippet, { documentation: '' })
       );
@@ -2228,7 +2271,7 @@ describe('Auto Completion Tests', () => {
 
       const content = 'kin';
       const completion = await parseSetup(content, 1);
-      expect(completion.items).lengthOf(1);
+      expect(completion.items).lengthOf(2);
       expect(completion.items[0]).eql(
         createExpectedCompletion('kind', 'kind: ', 0, 0, 0, 3, 10, InsertTextFormat.Snippet, {
           documentation: {
@@ -2385,8 +2428,11 @@ describe('Auto Completion Tests', () => {
       const completion = parseSetup(content, content.length);
       completion
         .then(function (result) {
-          assert.equal(result.items.length, 2);
+          assert.equal(result.items.length, 4);
           assert.equal(result.items[0].label, 'obj1');
+          assert.equal(result.items[0].kind, 10);
+          assert.equal(result.items[1].label, 'obj1');
+          assert.equal(result.items[1].kind, 7);
         })
         .then(done, done);
     });
@@ -2435,7 +2481,7 @@ describe('Auto Completion Tests', () => {
       languageService.addSchema(SCHEMA_ID, schema);
       const content = 'test_array_anyOf_2objects:\n  - obj';
       const completion = await parseSetup(content, content.length);
-      expect(completion.items.length).is.equal(2);
+      expect(completion.items.length).is.equal(4);
       const obj1 = completion.items.find((it) => it.label === 'obj1');
       expect(obj1).is.not.undefined;
       expect(obj1.textEdit.newText).equal('obj1:\n    ');
